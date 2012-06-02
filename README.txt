@@ -1,0 +1,1 @@
+Usage: ruby SalesTax.rb <input file>
