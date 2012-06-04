@@ -1,16 +1,44 @@
 #!/usr/bin/env ruby
 
-class SalesTax
-
-  def isTaxable(item)
-    if item =~ /(book)/ || item =~ /(chocolate)/ || item =~ /(pills)/
-      return false
+class Item < String
+  
+  def quantity
+    split.first.to_i
+  end
+  
+  def price
+    split.last.to_f
+  end
+  
+  def cost
+    quantity * price
+  end
+  
+  def description
+    split[1..-3].join(' ')
+  end
+  
+  def imported?
+    if self =~ /(imported)/
+      true
     else
-      return true
+      false
     end
   end
+  
+  def taxable?
+    if self =~ /(book)/ || self =~ /(chocolate)/ || self =~ /(pills)/
+      false
+    else
+      true
+    end
+  end
+  
+end
 
-  def calcTax(price, rate)
+class SalesTax
+
+  def calculateTax(price, rate)
     tax = (20 * price * rate).ceil / 20.0
     return tax
   end
@@ -21,50 +49,54 @@ class SalesTax
     output = Array.new
     totalCost = 0
     totalTax = 0
-    i = 0
 
     # Loop through each item in the input array
-    input.each do |item|
-      sTax = 0
-      iTax = 0
-      strQty = item.split[0]
-      qty = strQty.to_i
-      price = item.split.last.to_f
-      description = item[strQty.length, (item.index(' at ') - strQty.length)].strip
-      if item =~ /(imported)/
-        iTax = calcTax(price, 0.05)
+    input.each do |line|
+      item = Item.new(line)
+      if item.imported?
+        importTax = calculateTax(item.cost, 0.05)
+      else
+        importTax = 0
       end
-      if isTaxable(item)
-        sTax = calcTax(price, 0.1)
+      if item.taxable?
+        salesTax = calculateTax(item.cost, 0.1)
+      else
+        salesTax = 0
       end
-      tax = iTax + sTax
+      tax = importTax + salesTax
       totalTax += tax
-      cost = ((price + tax) * qty).round(2)
+      cost = (item.cost + tax).round(2)
       totalCost += cost
-      output[i] = "#{qty} #{description}: #{"%.2f" % cost}"
-      i += 1
+      output << "#{item.quantity} #{item.description}: #{"%.2f" % cost}"
     end
 
     # Add the totals
-    output[i] = "Sales Taxes: #{"%.2f" % totalTax}"
-    output[i+1] = "Total: #{"%.2f" % totalCost}"
-    
+    output << "Sales Taxes: #{"%.2f" % totalTax}"
+    output << "Total: #{"%.2f" % totalCost}"
+   
     # Return the output array
     return output
   end
 end
 
+
 if __FILE__ == $0
+
   st = SalesTax.new
   input = Array.new
-  i = 0
+  
+  # Prompt the user for imput
+  puts "Enter each item followed by Return."
+  puts "Press Return twice to calculate sales tax."
   begin
     line = gets.to_s.chomp
     if !line.empty?
-      input[i] = line
-      i += 1
+      input << line
     end
   end until line.empty?
+
+  # Display the results
   puts
   puts st.CalculateSalesTax(input)
+
 end
